@@ -4,6 +4,11 @@ on:
     branches: [main]
     paths:
       - 'webgl-upload/*.zip'
+      - 'Assets/Resources/MenuMaster.png'
+      - 'Assets/Resources/MenuTheme.ogg'
+      - 'preview/index.html'
+      - 'tools/publish_webgl.py'
+      - '.github/workflows/publish-reutov-webgl.yml'
   workflow_dispatch:
 
 permissions:
