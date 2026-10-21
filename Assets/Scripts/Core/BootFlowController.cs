@@ -99,7 +99,13 @@ namespace JahNomad.Reutov
                 courtyard = null;
             }
             for (int i = canvas.transform.childCount - 1; i >= 0; --i)
-                Destroy(canvas.transform.GetChild(i).gameObject);
+                DeactivateAndDestroy(canvas.transform.GetChild(i).gameObject);
+        }
+
+        private static void DeactivateAndDestroy(GameObject node)
+        {
+            node.SetActive(false);
+            Destroy(node);
         }
 
         private Image Picture(string name, Vector2 pos, Vector2 size)
