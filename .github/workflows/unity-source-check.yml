@@ -1,0 +1,20 @@
+name: Unity source preflight
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout Unity source
+        uses: actions/checkout@v4
+      - name: Validate Unity structure and source code
+        run: python3 tools/validate_unity.py
