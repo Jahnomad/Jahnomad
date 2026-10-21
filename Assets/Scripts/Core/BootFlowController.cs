@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
 namespace JahNomad.Reutov {
- public enum ScreenMode { Studio, Menu, Intro, Settings }
+ public enum ScreenMode { Studio, Menu, Intro, Settings, ExitNotice }
  public sealed class BootFlowController : MonoBehaviour {
   // The source-controlled boot scene does not depend on Unity GUID bindings.
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -60,7 +60,7 @@ namespace JahNomad.Reutov {
 #if UNITY_EDITOR
     UnityEditor.EditorApplication.isPlaying=false;
 #elif UNITY_WEBGL
-    Show(ScreenMode.Menu);
+    Show(ScreenMode.ExitNotice);
 #else
     Application.Quit();
 #endif
@@ -81,6 +81,9 @@ namespace JahNomad.Reutov {
     Button("Quit",new Vector2(0,-266),Quit);
    }else if(next==ScreenMode.Intro){
     Picture("PrologueCard",new Vector2(0,30),new Vector2(1000,380));
+    Button("Back",new Vector2(0,-260),()=>Show(ScreenMode.Menu));
+   }else if(next==ScreenMode.ExitNotice){
+    Picture("ExitNotice",new Vector2(0,30),new Vector2(1000,380));
     Button("Back",new Vector2(0,-260),()=>Show(ScreenMode.Menu));
    }else{
     Picture("GameTitle",new Vector2(0,175),new Vector2(800,210));
