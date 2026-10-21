@@ -2,96 +2,225 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-namespace JahNomad.Reutov {
- public enum ScreenMode { Studio, Menu, Intro, Settings, ExitNotice }
- public sealed class BootFlowController : MonoBehaviour {
-  // The source-controlled boot scene does not depend on Unity GUID bindings.
-  [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-  private static void EnsureBootController() {
-    if (Object.FindFirstObjectByType<BootFlowController>() == null)
-      new GameObject("Boot Flow").AddComponent<BootFlowController>();
-  }
-  private ScreenMode screen;
-  private Canvas canvas;
-  private AudioSource audioPlayer;
-  private float deadline;
-  private bool soundOn=true;
-  private void Awake(){
-   Application.targetFrameRate=60;
-   QualitySettings.vSyncCount=0;
+namespace JahNomad.Reutov
+{
+    public enum ScreenMode { Studio, Menu, Intro, Playing, Settings, ExitNotice }
+
+    /// <summary>Persistent boot flow, Russian title screen and a real transition to chapter one.</summary>
+    [DisallowMultipleComponent]
+    public sealed class BootFlowController : MonoBehaviour
+    {
+        private ScreenMode screen;
+        private Canvas canvas;
+        private AudioSource music;
+        private CourtyardGameplay courtyard;
+        private bool soundOn;
+        private float studioEnd;
+        private bool musicUnlockRequested;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void EnsureBootController()
+        {
+            if (Object.FindFirstObjectByType<BootFlowController>() == null)
+                new GameObject("JAH NOMAD | Boot Flow").AddComponent<BootFlowController>();
+        }
+
+        private void Awake()
+        {
+            Application.targetFrameRate = 60;
+            QualitySettings.vSyncCount = 0;
 #if UNITY_ANDROID && !UNITY_EDITOR
-   Screen.orientation=ScreenOrientation.LandscapeLeft;
+            Screen.orientation = ScreenOrientation.LandscapeLeft;
 #endif
-   if(Camera.main==null) {
-    var cameraGo=new GameObject("Main Camera",typeof(Camera),typeof(AudioListener));
-    cameraGo.tag="MainCamera";
-    cameraGo.transform.position=new Vector3(0,0,-10);
-    cameraGo.GetComponent<Camera>().clearFlags=CameraClearFlags.SolidColor;
-    cameraGo.GetComponent<Camera>().backgroundColor=new Color(.03f,.04f,.08f);
-   }
-   var go=new GameObject("UI",typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
-   canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;
-   var scaler=go.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
-   scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
-   if(FindFirstObjectByType<EventSystem>()==null) new GameObject("EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
-   audioPlayer=gameObject.AddComponent<AudioSource>();audioPlayer.playOnAwake=false;
-   audioPlayer.clip=Resources.Load<AudioClip>("JahNomadSting");
-   Show(ScreenMode.Studio);
-  }
-  private void Update(){
-   if(screen==ScreenMode.Studio&&Time.unscaledTime>=deadline) Show(ScreenMode.Menu);
-   if(Input.GetKeyDown(KeyCode.Escape))Show(ScreenMode.Menu);
-  }
-  private void Clear(){for(int i=canvas.transform.childCount-1;i>=0;i--) Destroy(canvas.transform.GetChild(i).gameObject);}
-  private Image Picture(string name,Vector2 pos,Vector2 size){
-   var g=new GameObject(name,typeof(RectTransform),typeof(Image));
-   g.transform.SetParent(canvas.transform,false);
-   var r=(RectTransform)g.transform;r.anchorMin=r.anchorMax=new Vector2(.5f,.5f);r.anchoredPosition=pos;r.sizeDelta=size;
-   var img=g.GetComponent<Image>();img.sprite=Resources.Load<Sprite>(name);
-   if(img.sprite==null){var t=Resources.Load<Texture2D>(name);if(t!=null)img.sprite=Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f));}
-   if(img.sprite==null) img.sprite=ReutovRuntimeArt.GetSprite(name);
-   img.preserveAspect=true;img.raycastTarget=false;return img;
-  }
-  private void Button(string asset,Vector2 pos,UnityEngine.Events.UnityAction action){
-   var img=Picture(asset,pos,new Vector2(390,70));img.raycastTarget=true;
-   var b=img.gameObject.AddComponent<Button>();b.targetGraphic=img;b.onClick.AddListener(action);
-  }
-  private void Quit(){
+            if (Camera.main == null)
+            {
+                GameObject cameraObject = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+                cameraObject.tag = "MainCamera";
+                cameraObject.transform.position = new Vector3(0, 0, -10);
+                Camera gameCamera = cameraObject.GetComponent<Camera>();
+                gameCamera.clearFlags = CameraClearFlags.SolidColor;
+                gameCamera.backgroundColor = new Color(.03f, .04f, .08f);
+            }
+
+            GameObject ui = new GameObject("Reutov UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = ui.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            CanvasScaler scaler = ui.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1280, 720);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = .5f;
+
+            if (Object.FindFirstObjectByType<EventSystem>() == null)
+                new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+
+            soundOn = PlayerPrefs.GetInt("reutov.sound", 1) != 0;
+            music = gameObject.AddComponent<AudioSource>();
+            music.playOnAwake = false;
+            music.loop = true;
+            music.spatialBlend = 0;
+            music.volume = .20f;
+            music.clip = ReutovSynthwave.GetMenuLoop();
+            AudioListener.volume = soundOn ? 1f : 0f;
+            Show(ScreenMode.Studio);
+        }
+
+        private void Update()
+        {
+            if (screen == ScreenMode.Studio && Time.unscaledTime >= studioEnd)
+                Show(ScreenMode.Menu);
+
+            // WebGL's audio context can be suspended until the first deliberate user gesture.
+            if (soundOn && !musicUnlockRequested && screen != ScreenMode.Studio &&
+                (Input.GetMouseButtonDown(0) || Input.touchCount > 0 || Input.anyKeyDown))
+            {
+                musicUnlockRequested = true;
+                PlayMusic();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace))
+            {
+                if (screen != ScreenMode.Menu && screen != ScreenMode.Studio)
+                    Show(ScreenMode.Menu);
+            }
+        }
+
+        private void PlayMusic()
+        {
+            if (soundOn && music != null && music.clip != null && !music.isPlaying)
+                music.Play();
+        }
+
+        private void ClearScreen()
+        {
+            if (courtyard != null)
+            {
+                Destroy(courtyard);
+                courtyard = null;
+            }
+            for (int i = canvas.transform.childCount - 1; i >= 0; --i)
+                Destroy(canvas.transform.GetChild(i).gameObject);
+        }
+
+        private Image Picture(string name, Vector2 pos, Vector2 size)
+        {
+            GameObject node = new GameObject(name, typeof(RectTransform), typeof(Image));
+            node.transform.SetParent(canvas.transform, false);
+            RectTransform rect = node.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = size;
+
+            Image image = node.GetComponent<Image>();
+            Texture2D texture = Resources.Load<Texture2D>(name);
+            if (texture != null)
+            {
+                texture.filterMode = FilterMode.Point;
+                image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                    new Vector2(.5f, .5f), 100f);
+            }
+            else
+                image.sprite = ReutovRuntimeArt.GetSprite(name);
+            image.preserveAspect = name != "Backdrop" && name != "CourtyardBackdrop";
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private void Button(string asset, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction action)
+        {
+            Image image = Picture(asset, pos, size);
+            image.raycastTarget = true;
+            Button button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock palette = button.colors;
+            palette.normalColor = Color.white;
+            palette.highlightedColor = new Color(.84f, 1f, 1f, 1f);
+            palette.pressedColor = new Color(.65f, .85f, .92f, 1f);
+            button.colors = palette;
+            button.onClick.AddListener(action);
+        }
+
+        private void Show(ScreenMode next)
+        {
+            screen = next;
+            ClearScreen();
+            if (next == ScreenMode.Playing)
+            {
+                courtyard = gameObject.AddComponent<CourtyardGameplay>();
+                courtyard.Begin(canvas, () => Show(ScreenMode.Menu));
+                PlayMusic();
+                return;
+            }
+
+            Image background = Picture("Backdrop", Vector2.zero, new Vector2(1280, 720));
+            RectTransform rect = background.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+
+            switch (next)
+            {
+                case ScreenMode.Studio:
+                    Picture("StudioLogo", new Vector2(0, 22), new Vector2(540, 162));
+                    Button("Skip", new Vector2(0, -263), new Vector2(340, 58), () => Show(ScreenMode.Menu));
+                    studioEnd = Time.unscaledTime + 2.1f;
+                    break;
+
+                case ScreenMode.Menu:
+                    Picture("GameTitle", new Vector2(0, 175), new Vector2(920, 265));
+                    Button("NewGame", new Vector2(0, -62), new Vector2(370, 64), () => Show(ScreenMode.Intro));
+                    Button("Settings", new Vector2(0, -138), new Vector2(370, 64), () => Show(ScreenMode.Settings));
+                    Button(soundOn ? "SoundOn" : "SoundOff", new Vector2(0, -215), new Vector2(310, 56), ToggleSound);
+                    Button("Quit", new Vector2(0, -292), new Vector2(370, 62), ExitGame);
+                    // The soundtrack starts on the first input on browsers that prohibit autoplay.
+                    PlayMusic();
+                    break;
+
+                case ScreenMode.Intro:
+                    Picture("PrologueCard", new Vector2(0, 73), new Vector2(980, 320));
+                    Button("Continue", new Vector2(0, -178), new Vector2(355, 65), () => Show(ScreenMode.Playing));
+                    Button("Back", new Vector2(0, -269), new Vector2(310, 60), () => Show(ScreenMode.Menu));
+                    PlayMusic();
+                    break;
+
+                case ScreenMode.Settings:
+                    Picture("GameTitle", new Vector2(0, 166), new Vector2(780, 220));
+                    Button(soundOn ? "SoundOn" : "SoundOff", new Vector2(0, -85), new Vector2(370, 66), ToggleSound);
+                    Button("Back", new Vector2(0, -213), new Vector2(320, 66), () => Show(ScreenMode.Menu));
+                    break;
+
+                case ScreenMode.ExitNotice:
+                    Picture("ExitNotice", new Vector2(0, 45), new Vector2(960, 330));
+                    Button("Back", new Vector2(0, -257), new Vector2(320, 64), () => Show(ScreenMode.Menu));
+                    break;
+            }
+        }
+
+        private void ToggleSound()
+        {
+            soundOn = !soundOn;
+            PlayerPrefs.SetInt("reutov.sound", soundOn ? 1 : 0);
+            PlayerPrefs.Save();
+            AudioListener.volume = soundOn ? 1f : 0f;
+            if (soundOn)
+            {
+                musicUnlockRequested = true;
+                PlayMusic();
+            }
+            else music.Pause();
+            Show(screen == ScreenMode.Settings ? ScreenMode.Settings : ScreenMode.Menu);
+        }
+
+        private void ExitGame()
+        {
 #if UNITY_EDITOR
-    UnityEditor.EditorApplication.isPlaying=false;
+            UnityEditor.EditorApplication.isPlaying=false;
 #elif UNITY_WEBGL
-    Show(ScreenMode.ExitNotice);
+            Show(ScreenMode.ExitNotice);
 #else
-    Application.Quit();
+            Application.Quit();
 #endif
-  }
-  private void Show(ScreenMode next){
-   screen=next;Clear();
-   var bg=Picture("Backdrop",Vector2.zero,new Vector2(1280,720));
-   var r=(RectTransform)bg.transform;r.anchorMin=Vector2.zero;r.anchorMax=Vector2.one;r.offsetMin=r.offsetMax=Vector2.zero;
-   if(next==ScreenMode.Studio){
-    Picture("StudioLogo",new Vector2(0,20),new Vector2(850,270));
-    Button("Skip",new Vector2(0,-250),()=>Show(ScreenMode.Menu));
-    deadline=Time.unscaledTime+3f;
-    if(soundOn&&audioPlayer.clip!=null)audioPlayer.Play();
-   }else if(next==ScreenMode.Menu){
-    audioPlayer.Stop();Picture("GameTitle",new Vector2(0,165),new Vector2(1000,250));
-    Button("NewGame",new Vector2(0,-80),()=>Show(ScreenMode.Intro));
-    Button("Settings",new Vector2(0,-173),()=>Show(ScreenMode.Settings));
-    Button("Quit",new Vector2(0,-266),Quit);
-   }else if(next==ScreenMode.Intro){
-    Picture("PrologueCard",new Vector2(0,30),new Vector2(1000,380));
-    Button("Back",new Vector2(0,-260),()=>Show(ScreenMode.Menu));
-   }else if(next==ScreenMode.ExitNotice){
-    Picture("ExitNotice",new Vector2(0,30),new Vector2(1000,380));
-    Button("Back",new Vector2(0,-260),()=>Show(ScreenMode.Menu));
-   }else{
-    Picture("GameTitle",new Vector2(0,175),new Vector2(800,210));
-    Button(soundOn?"SoundOn":"SoundOff",new Vector2(0,-80),()=>{
-      soundOn=!soundOn;AudioListener.volume=soundOn?1f:0f;Show(ScreenMode.Settings);
-    });
-    Button("Back",new Vector2(0,-230),()=>Show(ScreenMode.Menu));
-   }
-  }
- }
+        }
+    }
 }
