@@ -16,5 +16,7 @@ jobs:
     steps:
       - name: Checkout Unity source
         uses: actions/checkout@v4
+      - name: Install C# syntax parser
+        run: python3 -m pip install --disable-pip-version-check --quiet tree-sitter tree-sitter-c-sharp
       - name: Validate Unity structure and source code
         run: python3 tools/validate_unity.py
