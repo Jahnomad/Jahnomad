@@ -5,7 +5,7 @@ using UnityEngine;
 namespace JahNomad.Reutov
 {
     /// <summary>Self-contained graphic fallback. No asset imports, network or editor APIs required.</summary>
-    public static class ReutovRuntimeArt
+    public static partial class ReutovRuntimeArt
     {
         private static readonly Dictionary<string, Texture2D> Images = new Dictionary<string, Texture2D>();
         private static readonly Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
@@ -200,7 +200,7 @@ namespace JahNomad.Reutov
         private static Color32 C(int r, int g, int b, int a = 255) =>
             new Color32((byte)r, (byte)g, (byte)b, (byte)a);
 
-        private sealed class PixelCanvas
+        private sealed partial class PixelCanvas
         {
             private readonly int w, h;
             private readonly Color32[] pixels;
@@ -300,6 +300,7 @@ namespace JahNomad.Reutov
                 Add('?',"01110/10001/00001/00010/00100/00000/00100");
                 Add(',',"00000/00000/00000/00000/00110/00110/00100");
                 Add('-',"00000/00000/00000/11111/00000/00000/00000");
+                Add('/',"00001/00001/00010/00100/01000/10000/10000");
                 return d;
             }
         }
