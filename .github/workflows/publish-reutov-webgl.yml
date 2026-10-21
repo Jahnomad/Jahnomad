@@ -4,9 +4,6 @@ on:
     branches: [main]
     paths:
       - 'webgl-upload/*.zip'
-      - 'tools/publish_webgl.py'
-      - 'tools/webgl_player.html'
-      - '.github/workflows/publish-reutov-webgl.yml'
   workflow_dispatch:
 
 permissions:
