@@ -70,4 +70,16 @@ if "{{" in template:
     sys.exit("Unresolved template parameters")
 (out / "index.html").write_text(template, encoding="utf-8")
 (out / ".nojekyll").write_text("", encoding="utf-8")
+# Publish the separately labeled approved menu/music preview without replacing
+# the existing compiled Unity binary.
+preview = out / "preview"
+assets = preview / "art"
+assets.mkdir(parents=True, exist_ok=True)
+shutil.copy2(root / "preview/index.html", preview / "index.html")
+for resource in ("MenuMaster.png", "MenuTheme.ogg"):
+    source = root / "Assets/Resources" / resource
+    if not source.exists():
+        sys.exit("Approved preview resource missing: " + resource)
+    shutil.copy2(source, assets / resource)
+
 print(f"READY: {files} Unity files extracted; website size {sum(p.stat().st_size for p in out.rglob('*') if p.is_file())/1048576:.1f} MiB")
