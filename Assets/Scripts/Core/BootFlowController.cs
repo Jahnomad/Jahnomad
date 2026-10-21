@@ -60,7 +60,10 @@ namespace JahNomad.Reutov
             music.loop = true;
             music.spatialBlend = 0;
             music.volume = .20f;
-            music.clip = ReutovSynthwave.GetMenuLoop();
+            // Prefer the finished synthwave composition when the OGG is supplied.
+            // Keep a fully offline procedural fallback, so WebGL never starts silent.
+            AudioClip recordedTheme = Resources.Load<AudioClip>("MenuTheme");
+            music.clip = recordedTheme != null ? recordedTheme : ReutovSynthwave.GetMenuLoop();
             AudioListener.volume = soundOn ? 1f : 0f;
             Show(ScreenMode.Studio);
         }
