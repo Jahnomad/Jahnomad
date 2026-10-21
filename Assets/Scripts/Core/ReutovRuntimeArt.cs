@@ -21,6 +21,31 @@ namespace JahNomad.Reutov
                     case "StudioLogo": MakeBanner("JAH NOMAD", "НЕЗАВИСИМАЯ ИГРОВАЯ СТУДИЯ", name, new Color32(230, 103, 91, 255)); break;
                     case "GameTitle": MakeBanner("ЗАТЕРЯННЫЕ", "В РЕУТОВЕ", name, new Color32(242, 180, 109, 255)); break;
                     case "NewGame": MakeButton(name, "НОВАЯ ИГРА", false); break;
+                    case "Continue": MakeButton(name, "ВО ДВОР", false); break;
+                    case "CourtyardBackdrop": MakeCourtyard().Save(name); break;
+                    case "Misha": MakePerson(name, 0); break;
+                    case "Regina": MakePerson(name, 1); break;
+                    case "Agent": MakePerson(name, 2); break;
+                    case "PatrolCone": MakeBeam(name, C(240, 225, 168, 42)); break;
+                    case "FlashCone": MakeBeam(name, C(251, 220, 160, 52)); break;
+                    case "ChapterTitle": MakePanel(name, "ГЛАВА 01 - КОМЕНДАНТСКИЙ ЧАС", 3); break;
+                    case "ObjectiveBattery": MakePanel(name, "НАЙДИТЕ БАТАРЕЙКИ В МОСКВИЧЕ", 3); break;
+                    case "ObjectiveDiary": MakePanel(name, "НАЙДИТЕ ДНЕВНИК У ГАРАЖЕЙ", 3); break;
+                    case "ObjectiveRegina": MakePanel(name, "ПОГОВОРИТЕ С РЕГИНОЙ", 3); break;
+                    case "ObjectiveComplete": MakePanel(name, "РЕГИНА: БРАТ ПРОПАЛ. НАДО ИСКАТЬ!", 3); break;
+                    case "Battery0": MakePanel(name, "БАТАРЕЙКИ 0/2", 2); break;
+                    case "Battery2": MakePanel(name, "БАТАРЕЙКИ 2/2", 2); break;
+                    case "QuestNotice": MakePanel(name, "ОСМОТРИТЕ ДВОР", 4); break;
+                    case "Detected": MakePanel(name, "ВАС ЗАМЕТИЛИ! ВЕРНИТЕСЬ В УКРЫТИЕ", 3); break;
+                    case "FoundBattery": MakePanel(name, "В МОСКВИЧЕ НАЙДЕНЫ 2 БАТАРЕЙКИ!", 3); break;
+                    case "FoundDiary": MakePanel(name, "ДНЕВНИК БРАТА И ЧЁРНАЯ СЛИЗЬ...", 3); break;
+                    case "ReginaDialogue": MakePanel(name, "РЕГИНА: МИША, БЕЖИМ В ПОДЪЕЗД!", 3); break;
+                    case "GetCloser": MakePanel(name, "ПОДОЙДИТЕ БЛИЖЕ И НАЖМИТЕ ДЕЙСТВИЕ", 3); break;
+                    case "JoyBase": MakeControl(name, 0); break;
+                    case "JoyKnob": MakeControl(name, 1); break;
+                    case "Run": MakeControl(name, 2); break;
+                    case "Action": MakeControl(name, 3); break;
+                    case "Light": MakeControl(name, 4); break;
                     case "Settings": MakeButton(name, "НАСТРОЙКИ", false); break;
                     case "Quit": MakeButton(name, "ВЫХОД", false); break;
                     case "Back": MakeButton(name, "НАЗАД", true); break;
@@ -72,14 +97,27 @@ namespace JahNomad.Reutov
 
         private static void MakeBanner(string a, string b, string name, Color32 accent)
         {
-            int w = name == "StudioLogo" ? 1000 : 1200;
-            var p = new PixelCanvas(w, 320, new Color32(0, 0, 0, 0));
-            p.Rect(42, 88, w - 84, 148, C(10, 16, 26, 220));
-            p.Rect(46, 92, w - 92, 4, accent);
-            p.Rect(46, 230, w - 92, 4, C(52, 113, 126));
-            p.TextCentered(a, name == "StudioLogo" ? 12 : 11, C(62, 33, 48), 152, 7, 7);
-            p.TextCentered(a, name == "StudioLogo" ? 12 : 11, accent, 143);
-            p.TextCentered(b, 5, C(232, 218, 191), 274);
+            int width = name == "StudioLogo" ? 870 : 1200;
+            var p = new PixelCanvas(width, 360, new Color32(0, 0, 0, 0));
+            if (name == "StudioLogo")
+            {
+                p.Rect(178, 110, width - 356, 4, C(215, 165, 123));
+                p.TextCentered("JAH NOMAD", 8, C(42, 34, 54), 186, 5, 6);
+                p.TextCentered("JAH NOMAD", 8, accent, 180);
+                p.TextCentered("НЕЗАВИСИМАЯ ИГРОВАЯ СТУДИЯ", 2, C(237, 218, 192), 277);
+            }
+            else
+            {
+                p.Rect(70, 33, 312, 3, C(218, 163, 105));
+                p.Rect(width - 382, 33, 312, 3, C(218, 163, 105));
+                p.TextCentered("JAH NOMAD", 3, C(242, 221, 186), 38);
+                p.TextCentered(a, 12, C(85, 33, 57), 161, 8, 10);
+                p.TextCentered(a, 12, accent, 148);
+                p.Rect(60, 279, 140, 3, C(53, 187, 209));
+                p.Rect(width - 200, 279, 140, 3, C(53, 187, 209));
+                p.TextCentered(b, 10, C(25, 57, 83), 270, 7, 8);
+                p.TextCentered(b, 10, C(245, 233, 204), 260);
+            }
             p.Save(name);
         }
 
@@ -92,9 +130,9 @@ namespace JahNomad.Reutov
                 var c = C((byte)(7 + f * 20), (byte)(13 + f * 11), (byte)(30 + f * 12));
                 p.Rect(0, y, 640, 1, c);
             }
-            for (int i = 0; i < 160; i++) {
+            for (int i = 0; i < 350; i++) {
                 int sx = random.Next(640), sy = random.Next(210);
-                p.Rect(sx, sy, random.Next(1, 3), 1, C(79, 102, 119));
+                p.Rect(sx, sy, random.Next(1, 3), 1, i % 6 == 0 ? C(188, 215, 229) : C(79, 135, 157));
             }
             p.Circle(531, 53, 21, C(117, 136, 147));
             p.Circle(523, 47, 16, C(167, 172, 168));
@@ -123,7 +161,13 @@ namespace JahNomad.Reutov
             p.Rect(482, 232, 91, 47, C(46, 53, 57));
             p.Rect(488, 237, 79, 27, C(106, 75, 69));
             p.Rect(489, 239, 77, 5, C(184, 85, 74));
-            p.TextCentered("ЛАРЁК", 3, C(242, 185, 113), 249);
+            p.Rect(488, 235, 79, 19, C(75, 34, 44));
+            p.TextAt("ЛАРЁК", 2, C(255, 206, 143), 498, 237);
+            p.Rect(489, 256, 77, 20, C(242, 179, 100));
+            p.Rect(493, 259, 69, 15, C(54, 40, 47));
+            for (int i = 0; i < 18; i++)
+                p.Rect(495 + (i % 9) * 7, 262 + (i / 9) * 7, 3 + i % 2, 5,
+                    i % 3 == 0 ? C(214, 102, 66) : i % 3 == 1 ? C(224, 190, 111) : C(89, 166, 177));
             p.Rect(563, 278, 4, 22, C(26, 29, 30));
             p.Rect(391, 296, 63, 5, C(53, 44, 44));
             p.Rect(398, 302, 4, 9, C(53, 44, 44)); p.Rect(444, 302, 4, 9, C(53, 44, 44));
