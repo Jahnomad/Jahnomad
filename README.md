@@ -1,23 +1,32 @@
-# Затерянные в Реутове — Unity 6
+# Затерянные в Реутове — Unity 6 / JAH NOMAD
 
-Студия: **JAH NOMAD**. Исходный оригинальный проект на C# для Unity Build Automation.
+Оригинальный игровой проект на C# для Unity Cloud Build Automation. Реутов, 1996 год.
 
-## Статус (Sprint 0)
+## Sprint 0 — заставка и русское меню
 
-В ветку main загружены:
-- `Assets/Scripts/Core/BootFlowController.cs` — заставка, русское меню, настройки, кнопки;
-- `Assets/Editor/ReutovSceneSetup.cs` — создание стартовой сцены при первом импорте;
-- `Assets/Editor/ReutovAssetImporter.cs` — настройки импорта графики;
+Проект включает:
+- `Assets/Scripts/Core/BootFlowController.cs` — заставка JAH NOMAD, меню, настройки и вступление;
+- `Assets/Editor/ReutovArtGenerator.cs` — генерация **оригинального пиксельного арта** из C# при импорте;
+- `Assets/Editor/ReutovSceneSetup.cs` — автоматическое создание стартовой сцены `Assets/Scenes/00_Boot.unity`;
+- `Assets/Editor/ReutovAssetImporter.cs` — настройки точечной фильтрации PNG;
 - `Packages/manifest.json`, `ProjectSettings/ProjectVersion.txt`, `.gitignore`.
 
-**ВАЖНО: этот коммит ещё не является готовым игровым билдом.** В GitHub пока отсутствуют оригинальные файлы `Assets/Resources/*.png` и `JahNomadSting.ogg`. Пока они не добавлены, изображения заставки и меню отсутствуют. Компиляция в Unity Cloud не проверена.
+Для пробного билда внешние PNG больше не требуются: меню, надписи и фон Реутова генерируются автоматически. Фоновый короткий звук `JahNomadSting.ogg` пока не загружен; код умеет запускаться без него, со звуком добавим позднее. При желании оригинальные иллюстрации можно подставить в `Assets/Resources/`, не меняя код.
 
-## Необходимые оригинальные ресурсы
+## Первая облачная сборка
 
-`Backdrop.png, StudioLogo.png, GameTitle.png, NewGame.png, Settings.png, Quit.png, Back.png, Skip.png, SoundOn.png, SoundOff.png, PrologueCard.png, JahNomadSting.ogg`.
+1. В Unity Cloud Build Automation выбрать GitHub `Jahnomad/Jahnomad`, ветку `main`.
+2. Unity-проект расположен в **корне репозитория** (`/`), а не внутри ZIP-архива.
+3. Выбрать **Unity 6 / 6000.0.58f2** или совместимую доступную Unity 6 LTS (при выборе другой версии обновить ProjectVersion).
+4. Создать цель сборки **Web / WebGL**. Модуль Web Build Support должен быть включён.
+5. Запустить первую сборку. Сцена и графика должны сгенерироваться в процессе импорта/предсборки.
+6. **Проверить журнал компиляции** и только затем считать Web-билд работающим.
+7. После подтверждения Web-сборки добавить Android target; выпуск APK — отдельный шаг.
 
-Эти файлы имеются в локальном архиве `Zateryannye_Reutove_Unity_Sprint0_Step1.zip`, доступном в чате. Их нужно загрузить в каталог `Assets/Resources/`. Исходный коммерческий APK, чужие игровые ресурсы и секреты GitHub **не загружать**.
+## Статус проверки
 
-## Cloud Build
+Файлы опубликованы в GitHub, но **Unity Editor/облачная сборка здесь ещё не запускались**, поэтому совместимость первой сборки ещё предстоит подтвердить журналом. Это тестовый стартовый экран, не полная игра.
 
-После загрузки графики и звука настройте Unity Build Automation: репозиторий `Jahnomad/Jahnomad`, ветка `main`, корень Unity-проекта — `/`, версия Unity `6000.0.58f2`, целевая платформа Web. Сборка и журнал ошибок обязательны для подтверждения запуска.
+## Права и безопасность
+
+Никаких коммерческих APK, извлечённых ресурсов третьих лиц, GitHub-токенов или секретных ключей в репозитории нет.
