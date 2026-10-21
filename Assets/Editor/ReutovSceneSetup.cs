@@ -7,7 +7,11 @@ using JahNomad.Reutov;
 
 namespace JahNomad.Reutov.Editor {
  [InitializeOnLoad]
- public static class ReutovSceneSetup {
+ public static class ReutovSceneSetup : UnityEditor.Build.IPreprocessBuildWithReport {
+  public static int BuildSceneCount => EditorBuildSettings.scenes.Length;
+  public int callbackOrder => -9000;
+  public void OnPreprocessBuild(UnityEditor.Build.Reporting.BuildReport report) { if(!File.Exists(PathToScene)) CreateScene(); }
+
   private const string PathToScene="Assets/Scenes/00_Boot.unity";
   static ReutovSceneSetup(){EditorApplication.delayCall+=EnsureScene;}
   private static void EnsureScene(){
