@@ -133,6 +133,19 @@ names = set(re.findall(r'(?:Picture|Button|UI|GetSprite)\("([^"]+)"', boot + cou
 missing = sorted(name for name in names if name not in cases)
 check(not missing, "All runtime art references resolve: " + ", ".join(missing))
 
+
+try:
+    from tree_sitter import Language, Parser
+    import tree_sitter_c_sharp
+    csharp = Language(tree_sitter_c_sharp.language())
+    parser = Parser(csharp)
+    for file in sorted((ROOT / "Assets").rglob("*.cs")):
+        tree = parser.parse(file.read_bytes())
+        check(not tree.root_node.has_error,
+              "C# grammar: " + str(file.relative_to(ROOT)))
+except ImportError:
+    check(False, "C# grammar parser must be installed in continuous integration")
+
 print(f"Static validation: {'FAILED: ' + str(len(issues)) + ' checks' if issues else 'PASSED'}")
 if issues:
     sys.exit(1)
