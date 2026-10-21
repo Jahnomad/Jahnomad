@@ -141,6 +141,17 @@ namespace JahNomad.Reutov
             button.onClick.AddListener(action);
         }
 
+        private void TransparentButton(string asset, Vector2 pos, Vector2 size,
+                                       UnityEngine.Events.UnityAction action)
+        {
+            Image hitArea = Picture(asset, pos, size);
+            hitArea.color = new Color(1f, 1f, 1f, 0f);
+            hitArea.raycastTarget = true;
+            Button button = hitArea.gameObject.AddComponent<Button>();
+            button.targetGraphic = hitArea;
+            button.onClick.AddListener(action);
+        }
+
         private void Show(ScreenMode next)
         {
             screen = next;
@@ -168,12 +179,31 @@ namespace JahNomad.Reutov
                     break;
 
                 case ScreenMode.Menu:
-                    Picture("GameTitle", new Vector2(0, 175), new Vector2(920, 265));
-                    Button("NewGame", new Vector2(0, -62), new Vector2(370, 64), () => Show(ScreenMode.Intro));
-                    Button("Settings", new Vector2(0, -138), new Vector2(370, 64), () => Show(ScreenMode.Settings));
-                    Button(soundOn ? "SoundOn" : "SoundOff", new Vector2(0, -215), new Vector2(310, 56), ToggleSound);
-                    Button("Quit", new Vector2(0, -292), new Vector2(370, 62), ExitGame);
-                    // The soundtrack starts on the first input on browsers that prohibit autoplay.
+                    Texture2D approvedMenu = Resources.Load<Texture2D>("MenuMaster");
+                    if (approvedMenu != null)
+                    {
+                        // The approved 16:9 pixel-art illustration includes all lettering and
+                        // button artwork. Invisible Unity buttons stay responsive above it.
+                        Image master = Picture("MenuMaster", Vector2.zero, new Vector2(1280, 720));
+                        RectTransform full = master.rectTransform;
+                        full.anchorMin = Vector2.zero;
+                        full.anchorMax = Vector2.one;
+                        full.offsetMin = full.offsetMax = Vector2.zero;
+                        TransparentButton("NewGame", new Vector2(-4, 12), new Vector2(340, 68),
+                            () => Show(ScreenMode.Intro));
+                        TransparentButton("Settings", new Vector2(-4, -59), new Vector2(340, 65),
+                            () => Show(ScreenMode.Settings));
+                        TransparentButton("SoundOn", new Vector2(-4, -126), new Vector2(340, 63), ToggleSound);
+                        TransparentButton("Quit", new Vector2(-4, -184), new Vector2(340, 60), ExitGame);
+                    }
+                    else
+                    {
+                        Picture("GameTitle", new Vector2(0, 175), new Vector2(920, 265));
+                        Button("NewGame", new Vector2(0, -62), new Vector2(370, 64), () => Show(ScreenMode.Intro));
+                        Button("Settings", new Vector2(0, -138), new Vector2(370, 64), () => Show(ScreenMode.Settings));
+                        Button(soundOn ? "SoundOn" : "SoundOff", new Vector2(0, -215), new Vector2(310, 56), ToggleSound);
+                        Button("Quit", new Vector2(0, -292), new Vector2(370, 62), ExitGame);
+                    }
                     PlayMusic();
                     break;
 
