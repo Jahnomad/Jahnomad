@@ -1,0 +1,40 @@
+name: Publish Reutov WebGL
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'webgl-upload/*.zip'
+      - 'tools/publish_webgl.py'
+      - 'tools/webgl_player.html'
+      - '.github/workflows/publish-reutov-webgl.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout project and Unity build ZIP
+        uses: actions/checkout@v4
+      - name: Prepare browser-compatible Unity WebGL
+        run: python3 tools/publish_webgl.py
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload WebGL website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
