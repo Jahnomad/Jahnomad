@@ -48,8 +48,9 @@ for module in ("com.unity.ugui", "com.unity.modules.audio",
 check("6000.0.58f2" in version, "Unity editor version is pinned")
 check("RuntimeInitializeOnLoadMethod" in boot, "Boot controller self-starts in a standalone scene")
 check("ReutovRuntimeArt.GetSprite(name)" in boot, "Missing textures have a runtime fallback")
-check(bool(re.search(r"#if UNITY_EDITOR\\s+UnityEditor\\.EditorApplication", boot)),
-      "UnityEditor API is gated by editor-only compilation")
+check("#if UNITY_EDITOR" in boot and
+      "UnityEditor.EditorApplication.isPlaying=false;" in boot,
+      "Editor-only quit logic is protected by an editor preprocessor branch")
 check("UnityEditor" not in art and "System.IO" not in art and "File.WriteAllBytes" not in art,
       "Runtime fallback is independent of editor and disk")
 for item in ("Backdrop", "StudioLogo", "GameTitle", "NewGame",
