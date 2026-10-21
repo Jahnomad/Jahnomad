@@ -96,6 +96,43 @@ def delimiters(source):
 
 check(delimiters(boot), "Boot controller source braces and quotes are balanced")
 check(delimiters(art), "Pixel-art runtime source braces and quotes are balanced")
+
+# Sprint 1: prevent missing runtime symbols and invisible interface actions.
+courtyard = read("Assets/Scripts/Core/CourtyardGameplay.cs")
+pixel_sprites = read("Assets/Scripts/Core/ReutovCourtyardArt.cs")
+music = read("Assets/Scripts/Core/ReutovSynthwave.cs")
+for path, source in (("CourtyardGameplay", courtyard), ("ReutovCourtyardArt", pixel_sprites),
+                     ("ReutovSynthwave", music)):
+    check(delimiters(source), path + " source braces and quotes are balanced")
+check("public static partial class ReutovRuntimeArt" in art and
+      "public static partial class ReutovRuntimeArt" in pixel_sprites,
+      "Pixel art is split into matching static partial classes")
+check("private sealed partial class PixelCanvas" in art and
+      "private sealed partial class PixelCanvas" in pixel_sprites,
+      "TextAt and Line helpers extend the same nested PixelCanvas type")
+check("CourtyardGameplay" in boot and "ScreenMode.Playing" in boot,
+      "New game flows to an interactive courtyard, not an inert prologue")
+check("Button(\"Continue\"" in boot, "Prologue continue is present and clickable")
+check("PlayerPrefs.SetInt" in boot and "ReutovSynthwave.GetMenuLoop()" in boot,
+      "Sound settings persist and original soundtrack is connected")
+check("IPointerDownHandler" in courtyard and "IDragHandler" in courtyard and
+      "IPointerUpHandler" in courtyard and "activePointer" in courtyard,
+      "Analog touch controls are multi-pointer safe")
+check("Mathf.Clamp(at.x" in courtyard and
+      "(closest - at).sqrMagnitude < Radius * Radius" in courtyard,
+      "Character uses real rectangular collision footprints")
+check("private static void MakeCourtyard()" not in pixel_sprites and
+      "private static PixelCanvas MakeCourtyard()" in pixel_sprites,
+      "Original courtyard renderer creates a static scene")
+check('p.TextAt("ЛАРЁК"' in art,
+      "Kiosk signage is placed on the building, not centred on the screen")
+check('p.TextCentered("JAH NOMAD", 3' in art,
+      "Studio name uses the agreed small title credit")
+cases = set(re.findall(r'case "([^"]+)"', art))
+names = set(re.findall(r'(?:Picture|Button|UI|GetSprite)\\("([^"]+)"', boot + courtyard))
+missing = sorted(name for name in names if name not in cases)
+check(not missing, "All runtime art references resolve: " + ", ".join(missing))
+
 print(f"Static validation: {'FAILED: ' + str(len(issues)) + ' checks' if issues else 'PASSED'}")
 if issues:
     sys.exit(1)
