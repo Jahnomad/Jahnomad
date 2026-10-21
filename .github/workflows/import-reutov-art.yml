@@ -1,0 +1,28 @@
+name: Import approved Reutov artwork
+on:
+  push:
+    branches: [main]
+    paths:
+      - "art-upload/*.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-approved-art:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and unpack approved artwork
+        run: python3 tools/import_reutov_art_pack.py
+      - name: Commit new resources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Assets/Resources/MenuMaster.png Assets/Resources/MenuTheme.ogg
+          if ! git diff --cached --quiet; then
+            git commit -m "Import approved Reutov menu and synthwave theme"
+            git push
+          fi
