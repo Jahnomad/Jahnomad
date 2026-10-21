@@ -5,6 +5,12 @@ using UnityEngine.EventSystems;
 namespace JahNomad.Reutov {
  public enum ScreenMode { Studio, Menu, Intro, Settings }
  public sealed class BootFlowController : MonoBehaviour {
+  // The source-controlled boot scene does not depend on Unity GUID bindings.
+  [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+  private static void EnsureBootController() {
+    if (Object.FindFirstObjectByType<BootFlowController>() == null)
+      new GameObject("Boot Flow").AddComponent<BootFlowController>();
+  }
   private ScreenMode screen;
   private Canvas canvas;
   private AudioSource audioPlayer;
@@ -12,6 +18,17 @@ namespace JahNomad.Reutov {
   private bool soundOn=true;
   private void Awake(){
    Application.targetFrameRate=60;
+   QualitySettings.vSyncCount=0;
+#if UNITY_ANDROID && !UNITY_EDITOR
+   Screen.orientation=ScreenOrientation.LandscapeLeft;
+#endif
+   if(Camera.main==null) {
+    var cameraGo=new GameObject("Main Camera",typeof(Camera),typeof(AudioListener));
+    cameraGo.tag="MainCamera";
+    cameraGo.transform.position=new Vector3(0,0,-10);
+    cameraGo.GetComponent<Camera>().clearFlags=CameraClearFlags.SolidColor;
+    cameraGo.GetComponent<Camera>().backgroundColor=new Color(.03f,.04f,.08f);
+   }
    var go=new GameObject("UI",typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
    canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;
    var scaler=go.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -32,6 +49,7 @@ namespace JahNomad.Reutov {
    var r=(RectTransform)g.transform;r.anchorMin=r.anchorMax=new Vector2(.5f,.5f);r.anchoredPosition=pos;r.sizeDelta=size;
    var img=g.GetComponent<Image>();img.sprite=Resources.Load<Sprite>(name);
    if(img.sprite==null){var t=Resources.Load<Texture2D>(name);if(t!=null)img.sprite=Sprite.Create(t,new Rect(0,0,t.width,t.height),new Vector2(.5f,.5f));}
+   if(img.sprite==null) img.sprite=ReutovRuntimeArt.GetSprite(name);
    img.preserveAspect=true;img.raycastTarget=false;return img;
   }
   private void Button(string asset,Vector2 pos,UnityEngine.Events.UnityAction action){
