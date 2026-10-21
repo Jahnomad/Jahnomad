@@ -138,7 +138,7 @@ namespace JahNomad.Reutov
             palette.highlightedColor = new Color(.84f, 1f, 1f, 1f);
             palette.pressedColor = new Color(.65f, .85f, .92f, 1f);
             button.colors = palette;
-            button.onClick.AddListener(action);
+            button.onClick.AddListener(() => { musicUnlockRequested = true; PlayMusic(); action(); });
         }
 
         private void TransparentButton(string asset, Vector2 pos, Vector2 size,
@@ -149,7 +149,7 @@ namespace JahNomad.Reutov
             hitArea.raycastTarget = true;
             Button button = hitArea.gameObject.AddComponent<Button>();
             button.targetGraphic = hitArea;
-            button.onClick.AddListener(action);
+            button.onClick.AddListener(() => { musicUnlockRequested = true; PlayMusic(); action(); });
         }
 
         private void Show(ScreenMode next)
