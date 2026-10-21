@@ -193,6 +193,8 @@ namespace JahNomad.Reutov
                             () => Show(ScreenMode.Intro));
                         TransparentButton("Settings", new Vector2(-4, -59), new Vector2(340, 65),
                             () => Show(ScreenMode.Settings));
+                        if (!soundOn)
+                            Picture("SoundOff", new Vector2(-4, -126), new Vector2(340, 63));
                         TransparentButton("SoundOn", new Vector2(-4, -126), new Vector2(340, 63), ToggleSound);
                         TransparentButton("Quit", new Vector2(-4, -184), new Vector2(340, 60), ExitGame);
                     }
