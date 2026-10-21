@@ -129,7 +129,7 @@ check('p.TextAt("ЛАРЁК"' in art,
 check('p.TextCentered("JAH NOMAD", 3' in art,
       "Studio name uses the agreed small title credit")
 cases = set(re.findall(r'case "([^"]+)"', art))
-names = set(re.findall(r'(?:Picture|Button|UI|GetSprite)\\("([^"]+)"', boot + courtyard))
+names = set(re.findall(r'(?:Picture|Button|UI|GetSprite)\("([^"]+)"', boot + courtyard))
 missing = sorted(name for name in names if name not in cases)
 check(not missing, "All runtime art references resolve: " + ", ".join(missing))
 
