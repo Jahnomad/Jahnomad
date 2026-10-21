@@ -161,6 +161,26 @@ namespace JahNomad.Reutov
             button.onClick.AddListener(() => { musicUnlockRequested = true; PlayMusic(); action(); });
         }
 
+        // MenuMaster is a 16:9 authored image. Its touch regions follow the fitted image
+        // instead of relying on fixed screen pixels; this prevents offset taps on 19.5:9.
+        private void MenuHotspot(Image master, string label, Vector2 pos, Vector2 size,
+                                 UnityEngine.Events.UnityAction action, bool visible = false)
+        {
+            Image target = Picture(label, Vector2.zero, size);
+            target.transform.SetParent(master.transform, false);
+            RectTransform box = target.rectTransform;
+            box.anchorMin = new Vector2(.5f + (pos.x - size.x * .5f) / 1280f,
+                                        .5f + (pos.y - size.y * .5f) / 720f);
+            box.anchorMax = new Vector2(.5f + (pos.x + size.x * .5f) / 1280f,
+                                        .5f + (pos.y + size.y * .5f) / 720f);
+            box.offsetMin = box.offsetMax = Vector2.zero;
+            target.color = visible ? Color.white : new Color(1f, 1f, 1f, 0f);
+            target.raycastTarget = true;
+            Button button = target.gameObject.AddComponent<Button>();
+            button.targetGraphic = target;
+            button.onClick.AddListener(() => { musicUnlockRequested = true; PlayMusic(); action(); });
+        }
+
         private void Show(ScreenMode next)
         {
             screen = next;
@@ -198,14 +218,16 @@ namespace JahNomad.Reutov
                         full.anchorMin = Vector2.zero;
                         full.anchorMax = Vector2.one;
                         full.offsetMin = full.offsetMax = Vector2.zero;
-                        TransparentButton("NewGame", new Vector2(-4, 12), new Vector2(340, 68),
+                        AspectRatioFitter aspect = master.gameObject.AddComponent<AspectRatioFitter>();
+                        aspect.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                        aspect.aspectRatio = 1672f / 941f;
+                        MenuHotspot(master, "NewGame", new Vector2(-4, 12), new Vector2(340, 68),
                             () => Show(ScreenMode.Intro));
-                        TransparentButton("Settings", new Vector2(-4, -59), new Vector2(340, 65),
+                        MenuHotspot(master, "Settings", new Vector2(-4, -59), new Vector2(340, 65),
                             () => Show(ScreenMode.Settings));
-                        if (!soundOn)
-                            Picture("SoundOff", new Vector2(-4, -126), new Vector2(340, 63));
-                        TransparentButton("SoundOn", new Vector2(-4, -126), new Vector2(340, 63), ToggleSound);
-                        TransparentButton("Quit", new Vector2(-4, -184), new Vector2(340, 60), ExitGame);
+                        MenuHotspot(master, soundOn ? "SoundOn" : "SoundOff",
+                            new Vector2(-4, -126), new Vector2(340, 63), ToggleSound, !soundOn);
+                        MenuHotspot(master, "Quit", new Vector2(-4, -184), new Vector2(340, 60), ExitGame);
                     }
                     else
                     {
