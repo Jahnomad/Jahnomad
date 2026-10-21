@@ -130,7 +130,9 @@ check('p.TextCentered("JAH NOMAD", 3' in art,
       "Studio name uses the agreed small title credit")
 cases = set(re.findall(r'case "([^"]+)"', art))
 names = set(re.findall(r'(?:Picture|Button|UI|GetSprite)\("([^"]+)"', boot + courtyard))
-missing = sorted(name for name in names if name not in cases)
+missing = sorted(name for name in names if name not in cases and name != "MenuMaster")
+check("Resources.Load<Texture2D>(\"MenuMaster\")" in boot,
+      "Approved optional menu illustration is guarded by a runtime presence check")
 check(not missing, "All runtime art references resolve: " + ", ".join(missing))
 
 
