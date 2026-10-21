@@ -38,6 +38,15 @@ namespace JahNomad.Reutov {
    var img=Picture(asset,pos,new Vector2(390,70));img.raycastTarget=true;
    var b=img.gameObject.AddComponent<Button>();b.targetGraphic=img;b.onClick.AddListener(action);
   }
+  private void Quit(){
+#if UNITY_EDITOR
+    UnityEditor.EditorApplication.isPlaying=false;
+#elif UNITY_WEBGL
+    Show(ScreenMode.Menu);
+#else
+    Application.Quit();
+#endif
+  }
   private void Show(ScreenMode next){
    screen=next;Clear();
    var bg=Picture("Backdrop",Vector2.zero,new Vector2(1280,720));
@@ -51,7 +60,7 @@ namespace JahNomad.Reutov {
     audioPlayer.Stop();Picture("GameTitle",new Vector2(0,165),new Vector2(1000,250));
     Button("NewGame",new Vector2(0,-80),()=>Show(ScreenMode.Intro));
     Button("Settings",new Vector2(0,-173),()=>Show(ScreenMode.Settings));
-    Button("Quit",new Vector2(0,-266),()=>Show(ScreenMode.Intro));
+    Button("Quit",new Vector2(0,-266),Quit);
    }else if(next==ScreenMode.Intro){
     Picture("PrologueCard",new Vector2(0,30),new Vector2(1000,380));
     Button("Back",new Vector2(0,-260),()=>Show(ScreenMode.Menu));
