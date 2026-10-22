@@ -22,6 +22,8 @@ namespace JahNomad.Reutov
                     case "GameTitle": MakeBanner("ЗАТЕРЯННЫЕ", "В РЕУТОВЕ", name, new Color32(242, 180, 109, 255)); break;
                     case "NewGame": MakeButton(name, "НОВАЯ ИГРА", false); break;
                     case "Continue": MakeButton(name, "ВО ДВОР", false); break;
+                    case "QuestMarker": MakeQuestMarker(name); break;
+                    case "Entrance": MakeEntrance(name); break;
                     case "CourtyardBackdrop": MakeCourtyard().Save(name); break;
                     case "Misha": MakePerson(name, 0); break;
                     case "Regina": MakePerson(name, 1); break;
@@ -287,6 +289,13 @@ namespace JahNomad.Reutov
                 Add('7',"11111/00001/00010/00100/01000/01000/01000");
                 Add('8',"01110/10001/10001/01110/10001/10001/01110");
                 Add('9',"01110/10001/10001/01111/00001/00001/01110");
+                Add('E',"11111/10000/10000/11110/10000/10000/11111");
+                Add('F',"11111/10000/10000/11110/10000/10000/10000");
+                Add('W',"10001/10001/10001/10101/10101/10101/01010");
+                Add('S',"01111/10000/10000/01110/00001/00001/11110");
+                Add('I',"01110/00100/00100/00100/00100/00100/01110");
+                Add('T',"11111/00100/00100/00100/00100/00100/00100");
+                Add('!',"00100/00100/00100/00100/00100/00000/00100");
                 Add('J',"00111/00010/00010/00010/10010/10010/01100");
                 Add('A',"01110/10001/10001/11111/10001/10001/10001");
                 Add('H',"10001/10001/10001/11111/10001/10001/10001");

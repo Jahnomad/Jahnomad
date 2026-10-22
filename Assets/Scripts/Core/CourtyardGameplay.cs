@@ -28,8 +28,8 @@ namespace JahNomad.Reutov
             Vector2 local;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 area, data.position, data.pressEventCamera, out local)) return;
-            Direction = Vector2.ClampMagnitude(local / 50f, 1f);
-            if (Knob != null) Knob.anchoredPosition = Direction * 34f;
+            Direction = Vector2.ClampMagnitude(local / Mathf.Max(1f, area.rect.width * .323f), 1f);
+            if (Knob != null) Knob.anchoredPosition = Direction * (area.rect.width * .219f);
         }
 
         public void OnPointerUp(PointerEventData data)
@@ -72,12 +72,22 @@ namespace JahNomad.Reutov
             new Rect(430, 585, 70, 56) // concrete planter
         };
         private readonly Vector2 spawn = new Vector2(604, 578);
-        private readonly Vector2 car = new Vector2(387, 420);
-        private readonly Vector2 diary = new Vector2(295, 603);
         private readonly Vector2 regina = new Vector2(736, 498);
         private Vector2 pos;
         private Vector2 facing = Vector2.up;
+        private RectTransform sceneRoot;
         private Canvas canvas;
+        private Image marker, hint, dialoguePanel;
+        private Button actionButton;
+        private string[][] conversations;
+        private int dialoguePage;
+        private int pendingStage;
+        private bool complete;
+        private readonly Vector2 entrance = new Vector2(601, 270);
+        private readonly Vector2[] targets = {
+            new Vector2(736, 498), new Vector2(387, 420), new Vector2(295, 603),
+            new Vector2(736, 498), new Vector2(601, 270)
+        };
         private Image character, flashlight, objective, battery, notice, agentA, agentB, coneA, coneB;
         private ReutovJoystick joystick;
         private ReutovPressHold sprintButton;
@@ -98,6 +108,27 @@ namespace JahNomad.Reutov
             pos = spawn;
             stage = 0;
             clock = 0f;
+            // Fit the world and every hit area together; wide screens must not stretch collisions.
+            GameObject frame = new GameObject("Courtyard 16:9", typeof(RectTransform), typeof(AspectRatioFitter));
+            sceneRoot = frame.GetComponent<RectTransform>();
+            sceneRoot.SetParent(canvas.transform, false);
+            sceneRoot.anchorMin = Vector2.zero;
+            sceneRoot.anchorMax = Vector2.one;
+            sceneRoot.offsetMin = sceneRoot.offsetMax = Vector2.zero;
+            AspectRatioFitter fit = frame.GetComponent<AspectRatioFitter>();
+            fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fit.aspectRatio = W / H;
+            conversations = new [] {
+                new [] { "РЕГИНА: МИША, ТВОЙ БРАТ НЕ ВЕРНУЛСЯ.\nЯ ВИДЕЛА ЕГО У ГАРАЖЕЙ.",
+                         "РЕГИНА: ВОЗЬМИ БАТАРЕЙКИ ИЗ МОСКВИЧА.\nИ НЕ ПОПАДАЙСЯ ЛЮДЯМ У ЧЁРНОЙ ВОЛГИ." },
+                new [] { "МИША: ДВЕ БАТАРЕЙКИ. ФОНАРЬ РАБОТАЕТ.\nТЕПЕРЬ МОЖНО ОСМОТРЕТЬ ГАРАЖИ." },
+                new [] { "МИША: ЭТО ДНЕВНИК БРАТА...\nНА ОБЛОЖКЕ КАКАЯ-ТО ЧЁРНАЯ СЛИЗЬ.",
+                         "ЗАПИСЬ: ЕСЛИ НЕ ВЕРНУСЬ, ИЩИТЕ У СТАНЦИИ.\nПОСЛЕ ДВЕНАДЦАТИ НЕ ВЕРЬТЕ ГОЛОСАМ." },
+                new [] { "РЕГИНА: У СТАНЦИИ? ЗНАЧИТ, ОН УЗНАЛ...\nТИШЕ. КАЖЕТСЯ, НАС УСЛЫШАЛИ.",
+                         "РЕГИНА: В ПОДЪЕЗД, ПОКА ОНИ НЕ ПОДОШЛИ!\nДНЕВНИК НЕЛЬЗЯ ОСТАВЛЯТЬ ЗДЕСЬ." },
+                new [] { "ДВЕРЬ ЗАКРЫЛАСЬ. ШАГИ ОСТАЛИСЬ СНАРУЖИ.\nВ ДНЕВНИКЕ ЕСТЬ АДРЕС У СТАНЦИИ.",
+                         "ПЕРВЫЙ ЭПИЗОД ПРОЙДЕН.\nМИША И РЕГИНА НАШЛИ ПЕРВУЮ ЗАЦЕПКУ." }
+            };
             UI("CourtyardBackdrop", new Vector2(0, 0), new Vector2(W, H), false, true);
 
             // Patrol cones are behind the moving character and rotate around patrol guards.
@@ -106,16 +137,18 @@ namespace JahNomad.Reutov
             agentA = UI("Agent", World(coneOriginA), new Vector2(45, 79), false);
             agentB = UI("Agent", World(coneOriginB), new Vector2(45, 79), false);
             UI("Regina", World(regina), new Vector2(49, 89), false);
+            UI("Entrance", World(entrance + new Vector2(0, -33)), new Vector2(66, 94), false);
+            marker = UI("QuestMarker", World(regina), new Vector2(32, 43), false);
 
             flashlight = UI("FlashCone", World(pos), new Vector2(196, 150), false);
             character = UI("Misha", World(pos), new Vector2(56, 92), false);
-            UI("ChapterTitle", new Vector2(-324, 319), new Vector2(695, 60), false);
-            objective = UI("ObjectiveBattery", new Vector2(-365, 256), new Vector2(600, 65), false);
+            UI("ChapterTitle", new Vector2(-270, 319), new Vector2(700, 60), false);
+            objective = UI("ObjectiveBattery", new Vector2(-300, 256), new Vector2(640, 65), false);
             battery = UI("Battery0", new Vector2(529, 319), new Vector2(200, 60), false);
             notice = UI("QuestNotice", new Vector2(0, 85), new Vector2(760, 145), false);
             notice.gameObject.SetActive(false);
 
-            Image backButton = UI("Back", new Vector2(567, -320), new Vector2(145, 55), true);
+            Image backButton = UI("Back", new Vector2(200, 319), new Vector2(145, 55), true);
             Click(backButton, () => back?.Invoke());
 
             Image pad = UI("JoyBase", new Vector2(-530, -267), new Vector2(155, 155), true);
@@ -126,11 +159,20 @@ namespace JahNomad.Reutov
 
             Image run = UI("Run", new Vector2(398, -283), new Vector2(116, 116), true);
             sprintButton = run.gameObject.AddComponent<ReutovPressHold>();
-            Image action = UI("Action", new Vector2(531, -234), new Vector2(118, 118), true);
+            Image action = UI("Action", new Vector2(531, -214), new Vector2(118, 118), true);
             Click(action, Interact);
-            Image toggleLight = UI("Light", new Vector2(531, -335), new Vector2(95, 89), true);
+            actionButton = action.GetComponent<Button>();
+            Image toggleLight = UI("Light", new Vector2(540, -320), new Vector2(85, 70), true);
             Click(toggleLight, () => { flashlightEnabled = !flashlightEnabled; });
+            hint = UI("QuestNotice", new Vector2(0, -322), new Vector2(620, 46), false);
+            hint.sprite = ReutovRuntimeArt.StoryPanel("WASD / СТРЕЛКИ - ХОДЬБА    SHIFT - БЕГ", false);
+            // Dialogue is above controls and captures taps so closing it cannot trigger movement.
+            dialoguePanel = UI("QuestNotice", new Vector2(0, 34), new Vector2(1050, 232), true);
+            Click(dialoguePanel, Interact);
+            dialoguePanel.gameObject.SetActive(false);
             UpdateQuestHUD();
+            ShowDialogue("МИША: ПОЛНОЧЬ. ДВОР СЛОВНО ВЫМЕР.\nРЕГИНА ЖДЁТ У СКАМЕЙКИ. НАДО ПОГОВОРИТЬ.");
+            pendingStage = 0;
         }
 
         private static Vector2 World(Vector2 point) { return new Vector2(point.x - W / 2f, H / 2f - point.y); }
@@ -138,12 +180,13 @@ namespace JahNomad.Reutov
         private Image UI(string asset, Vector2 point, Vector2 size, bool canTouch, bool stretch = false)
         {
             GameObject go = new GameObject(asset, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(canvas.transform, false);
+            go.transform.SetParent(sceneRoot, false);
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
             rect.pivot = new Vector2(.5f, .5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = point;
+            rect.anchorMin = new Vector2(.5f + (point.x - size.x / 2f) / W, .5f + (point.y - size.y / 2f) / H);
+            rect.anchorMax = new Vector2(.5f + (point.x + size.x / 2f) / W, .5f + (point.y + size.y / 2f) / H);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
             if (stretch)
             {
                 rect.anchorMin = Vector2.zero;
@@ -170,8 +213,9 @@ namespace JahNomad.Reutov
             go.transform.SetParent(parent, false);
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = Vector2.zero;
+            rect.anchorMin = new Vector2(.5f - size.x / 310f, .5f - size.y / 310f);
+            rect.anchorMax = new Vector2(.5f + size.x / 310f, .5f + size.y / 310f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
             Image img = go.GetComponent<Image>();
             img.raycastTarget = false;
             return img;
@@ -204,7 +248,7 @@ namespace JahNomad.Reutov
             Vector2 move = keyboard.sqrMagnitude > .01f ? keyboard.normalized : stick;
             float length = move.magnitude;
             if (length > 1f) move.Normalize();
-            if (!dialog && length > .1f)
+            if (!dialog && !complete && length > .1f)
             {
                 facing = move.normalized;
                 bool sprint = (sprintButton != null && sprintButton.Held) ||
@@ -217,22 +261,31 @@ namespace JahNomad.Reutov
             }
 
             Vector2 offset = World(pos);
-            character.rectTransform.anchoredPosition = offset +
-                new Vector2(0, !dialog && length > .1f ? Mathf.Sin(clock * 16f) * 2f : 0f);
-            flashlight.gameObject.SetActive(flashlightEnabled);
-            if (flashlightEnabled)
+            Place(character, offset +
+                new Vector2(0, !dialog && !complete && length > .1f ? Mathf.Sin(clock * 16f) * 2f : 0f));
+            flashlight.gameObject.SetActive(flashlightEnabled && stage >= 2);
+            if (flashlightEnabled && stage >= 2)
             {
-                flashlight.rectTransform.anchoredPosition = offset + new Vector2(facing.x * 66f, -facing.y * 66f);
+                Place(flashlight, offset + new Vector2(facing.x * 66f, -facing.y * 66f));
                 flashlight.rectTransform.localEulerAngles = new Vector3(0, 0,
                     -Mathf.Atan2(facing.y, facing.x) * Mathf.Rad2Deg - 90f);
             }
 
+            if (stage < targets.Length && !complete)
+            {
+                Place(marker, World(targets[stage]) + new Vector2(0, 65 + Mathf.Sin(clock * 3f) * 5f));
+                bool nearby = Vector2.Distance(pos, targets[stage]) < 95f;
+                actionButton.interactable = dialog || nearby;
+                hint.sprite = ReutovRuntimeArt.StoryPanel(dialog ? "НАЖМИТЕ НА ДИАЛОГ ИЛИ E - ДАЛЕЕ" :
+                    nearby ? "E / ДЕЙСТВИЕ - " + (stage == 0 || stage == 3 ? "ГОВОРИТЬ" : stage == 4 ? "ВОЙТИ" : "ОСМОТРЕТЬ") :
+                    "ИДИТЕ К МЕРЦАЮЩЕЙ МЕТКЕ    F - ФОНАРЬ", false);
+            }
             visionA = new Vector2(-.4f + Mathf.Sin(clock * .42f) * .3f, .9f).normalized;
             visionB = new Vector2(-.7f + Mathf.Sin(clock * .28f) * .2f, .7f).normalized;
             PositionVision(coneA, visionA, coneOriginA);
             PositionVision(coneB, visionB, coneOriginB);
 
-            if (!dialog && detectionCooldown <= 0f &&
+            if (!dialog && !complete && detectionCooldown <= 0f &&
                 (VisibleTo(coneOriginA, visionA) || VisibleTo(coneOriginB, visionB)))
             {
                 pos = spawn;
@@ -267,41 +320,71 @@ namespace JahNomad.Reutov
         private void PositionVision(Image image, Vector2 direction, Vector2 from)
         {
             if (image == null) return;
-            image.rectTransform.anchoredPosition = World(from + direction * 70f);
+            Place(image, World(from + direction * 70f));
             image.rectTransform.localEulerAngles = new Vector3(0, 0,
                 -Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f);
         }
 
+        private static void Place(Image image, Vector2 position)
+        {
+            RectTransform rect = image.rectTransform;
+            Vector2 half = (rect.anchorMax - rect.anchorMin) * .5f;
+            Vector2 center = new Vector2(.5f + position.x / W, .5f + position.y / H);
+            rect.anchorMin = center - half;
+            rect.anchorMax = center + half;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+        }
+
         private void UpdateQuestHUD()
         {
-            string asset = stage == 0 ? "ObjectiveBattery" :
-                           stage == 1 ? "ObjectiveDiary" :
-                           stage == 2 ? "ObjectiveRegina" : "ObjectiveComplete";
-            objective.sprite = ReutovRuntimeArt.GetSprite(asset);
-            battery.sprite = ReutovRuntimeArt.GetSprite(stage == 0 ? "Battery0" : "Battery2");
+            string[] goals = { "ПОГОВОРИТЕ С РЕГИНОЙ", "НАЙДИТЕ БАТАРЕЙКИ В МОСКВИЧЕ",
+                "НАЙДИТЕ ДНЕВНИК У ГАРАЖЕЙ", "ПОКАЖИТЕ ДНЕВНИК РЕГИНЕ", "УКРОЙТЕСЬ В ПОДЪЕЗДЕ", "ЭПИЗОД 01 ПРОЙДЕН" };
+            objective.sprite = ReutovRuntimeArt.StoryPanel(goals[stage], false);
+            battery.sprite = ReutovRuntimeArt.GetSprite(stage < 2 ? "Battery0" : "Battery2");
+        }
+
+        private void ShowDialogue(string message)
+        {
+            CancelInvoke(nameof(HideNotice));
+            notice.gameObject.SetActive(false);
+            dialog = true;
+            dialoguePanel.sprite = ReutovRuntimeArt.StoryPanel(message + "\n\nE / ДЕЙСТВИЕ / НАЖАТИЕ - ДАЛЕЕ", true);
+            dialoguePanel.gameObject.SetActive(true);
         }
 
         private void Interact()
         {
             if (dialog)
             {
+                if (pendingStage > stage && ++dialoguePage < conversations[stage].Length)
+                {
+                    ShowDialogue(conversations[stage][dialoguePage]);
+                    return;
+                }
                 dialog = false;
-                notice.gameObject.SetActive(false);
+                detectionCooldown = Mathf.Max(detectionCooldown, 1f);
+                dialoguePanel.gameObject.SetActive(false);
+                stage = pendingStage;
+                complete = stage == targets.Length;
+                UpdateQuestHUD();
+                if (complete)
+                {
+                    marker.gameObject.SetActive(false);
+                    actionButton.interactable = false;
+                    hint.sprite = ReutovRuntimeArt.StoryPanel("КОНЕЦ ЭПИЗОДА    НАЗАД - В МЕНЮ", false);
+                }
                 return;
             }
-            Vector2 target = stage == 0 ? car : stage == 1 ? diary : regina;
-            if (stage < 3 && Vector2.Distance(pos, target) < 95f)
+            if (complete) return;
+            if (Vector2.Distance(pos, targets[stage]) < 95f)
             {
-                stage++;
-                UpdateQuestHUD();
-                notice.sprite = ReutovRuntimeArt.GetSprite(stage == 1 ? "FoundBattery" :
-                    stage == 2 ? "FoundDiary" : "ReginaDialogue");
-                notice.gameObject.SetActive(true);
-                dialog = true;
+                dialoguePage = 0;
+                pendingStage = stage + 1;
+                ShowDialogue(conversations[stage][0]);
             }
             else
             {
-                notice.sprite = ReutovRuntimeArt.GetSprite(stage == 3 ? "ObjectiveComplete" : "GetCloser");
+                notice.sprite = ReutovRuntimeArt.GetSprite("GetCloser");
                 notice.gameObject.SetActive(true);
                 CancelInvoke(nameof(HideNotice));
                 Invoke(nameof(HideNotice), 1.3f);

@@ -98,6 +98,7 @@ namespace JahNomad.Reutov
         {
             if (courtyard != null)
             {
+                courtyard.enabled = false;
                 Destroy(courtyard);
                 courtyard = null;
             }

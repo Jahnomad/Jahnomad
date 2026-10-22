@@ -20,3 +20,5 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check --quiet tree-sitter tree-sitter-c-sharp
       - name: Validate Unity structure and source code
         run: python3 tools/validate_unity.py
+      - name: Check courtyard routes and story text
+        run: python3 -m unittest discover -s tests -v

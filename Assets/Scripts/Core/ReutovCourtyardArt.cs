@@ -6,6 +6,47 @@ namespace JahNomad.Reutov
     /// <summary>Original procedural sprites for the Yubileyny courtyard and touch game interface.</summary>
     public static partial class ReutovRuntimeArt
     {
+        // Finite story strings are cached just like the other procedural sprites.
+        public static Sprite StoryPanel(string message, bool dialogue)
+        {
+            string key = "story:" + (dialogue ? "dialogue:" : "hud:") + message;
+            if (Sprites.TryGetValue(key, out Sprite existing)) return existing;
+            int height = dialogue ? 248 : 70;
+            var p = new PixelCanvas(1120, height, C(8, 18, 32, 248));
+            p.Rect(3, 3, 1114, 3, C(56, 216, 223));
+            p.Rect(3, height - 6, 1114, 3, C(61, 168, 185));
+            string[] lines = message.Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+                p.TextCentered(lines[i], 3, C(243, 228, 200),
+                    dialogue ? 40 + i * 39 : 35);
+            p.Save(key);
+            Texture2D texture = Images[key];
+            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                new Vector2(.5f, .5f), 100, 0, SpriteMeshType.FullRect);
+            Sprites[key] = sprite;
+            return sprite;
+        }
+
+        private static void MakeQuestMarker(string name)
+        {
+            var p = new PixelCanvas(32, 43, new Color32(0, 0, 0, 0));
+            p.Rect(12, 3, 8, 19, C(255, 209, 125));
+            p.Rect(12, 26, 8, 6, C(255, 209, 125));
+            p.Line(7, 35, 16, 41, C(56, 216, 223));
+            p.Line(16, 41, 25, 35, C(56, 216, 223));
+            p.Save(name);
+        }
+
+        private static void MakeEntrance(string name)
+        {
+            var p = new PixelCanvas(66, 94, C(35, 46, 57));
+            p.Rect(6, 8, 54, 86, C(12, 22, 31));
+            p.Rect(11, 14, 44, 80, C(56, 67, 70));
+            p.Rect(44, 57, 4, 9, C(225, 183, 118));
+            p.Rect(4, 2, 58, 4, C(249, 195, 111));
+            p.Save(name);
+        }
+
         private static void MakePanel(string name, string message, int scale)
         {
             int width = name.StartsWith("Battery") ? 350 : 1120;
